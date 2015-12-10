@@ -1,8 +1,10 @@
 extern crate hoedown;
 
 use std::env;
+use std::io::prelude::*;
 use std::fs::File;
-use std::io::Read;
+use std::fs::OpenOptions;
+use std::io::BufWriter;
 use std::path::Path;
 
 use hoedown::Markdown;
@@ -12,7 +14,8 @@ use hoedown::renderer::html::{Html, Flags};
 fn main() {
     match env::args().nth(1) {
         Some(file) => {
-            convert(file);
+            let html = convert(file);
+            write_file(html);
         }
         None => {
             println!("Usage: rustatic <path/to/file>");
@@ -22,7 +25,7 @@ fn main() {
 
 }
 
-fn convert(file: String) {
+fn convert(file: String) -> String {
     println!("Converting {}\n", file);
 
     let path = Path::new(&file);
@@ -40,5 +43,22 @@ fn convert(file: String) {
 
     let result = html.render(&input);
 
-    println!("{:?}", result.to_str().unwrap());
+    return result.to_str().unwrap().to_owned();
+}
+
+fn write_file(html: String) {
+    let path = Path::new("test.html");
+
+    let mut options = OpenOptions::new();
+    options.read(true)
+        .write(true)
+        .create(true);
+
+    let file = match options.open(&path) {
+        Ok(file) => file,
+        Err(..) => panic!("at the Disco"),
+    };
+
+    let mut writer = BufWriter::new(&file);
+    writer.write_all(&html.into_bytes());
 }
