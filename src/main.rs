@@ -1,22 +1,28 @@
 extern crate hoedown;
+extern crate rustc_serialize;
+extern crate handlebars;
 
 use std::env;
 use std::io::prelude::*;
-use std::fs::File;
-use std::fs::OpenOptions;
+use std::fs::{File,OpenOptions};
 use std::io::BufWriter;
-use std::path::Path;
-use std::path::PathBuf;
+use std::path::{Path,PathBuf};
 
 use hoedown::Markdown;
 use hoedown::renderer::Render;
 use hoedown::renderer::html::{Html, Flags};
 
+use std::collections::BTreeMap;
+use rustc_serialize::json::{Json, ToJson};
+
+use handlebars::Handlebars;
+
 fn main() {
     match env::args().nth(1) {
         Some(file) => {
             let html = convert(&file);
-            write_file(file, html);
+            let content = render_layout(html);
+            write_file(file, content);
         }
         None => {
             println!("Usage: rustatic <path/to/file>");
@@ -67,4 +73,42 @@ fn write_file(file_path: String, html: String) {
 
     let mut writer = BufWriter::new(&file);
     writer.write_all(&html.into_bytes());
+}
+
+#[derive(Debug)]
+struct Content {
+    title: String,
+    body: String
+}
+
+impl ToJson for Content {
+  fn to_json(&self) -> Json {
+    let mut m: BTreeMap<String, Json> = BTreeMap::new();
+    m.insert("title".to_string(), self.title.to_json());
+    m.insert("body".to_string(), self.body.to_json());
+    m.to_json()
+  }
+}
+
+fn render_layout(content: String) -> String {
+    let mut handlebars = Handlebars::new();
+    let path = Path::new("_layouts/default.hbs");
+
+    let mut file = match File::open(path) {
+        Ok(file) => file,
+        Err(..)  => panic!("Can't find layout."),
+    };
+
+    let mut source = String::new();
+    file.read_to_string(&mut source);
+
+    handlebars.register_template_string("default", source.to_string())
+        .ok().unwrap();
+
+    let data = Content {
+        title: "Welcome to Rustatic!".to_string(),
+        body: content,
+    };
+
+    handlebars.render("default", &data).unwrap()
 }

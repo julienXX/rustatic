@@ -5,3 +5,5 @@ authors = ["Julien Blanchard <julien@sideburns.eu>"]
 
 [dependencies]
 hoedown = "*"
+handlebars = "*"
+rustc-serialize = "*"
