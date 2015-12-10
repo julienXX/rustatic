@@ -4,6 +4,7 @@ extern crate handlebars;
 
 use std::env;
 use std::io::prelude::*;
+use std::fs;
 use std::fs::{File,OpenOptions};
 use std::io::BufWriter;
 use std::path::{Path,PathBuf};
@@ -20,6 +21,7 @@ use handlebars::Handlebars;
 fn main() {
     match env::args().nth(1) {
         Some(file) => {
+            setup();
             let html = convert(&file);
             let content = render_layout(html);
             write_file(file, content);
@@ -30,6 +32,13 @@ fn main() {
         }
     };
 
+}
+
+fn setup() -> std::io::Result<()> {
+    try!(fs::create_dir("./_site"));
+    try!(fs::create_dir("./_posts"));
+    try!(fs::create_dir("./_layouts"));
+    Ok(())
 }
 
 fn convert(file: &String) -> String {
@@ -57,7 +66,7 @@ fn write_file(file_path: String, html: String) {
     let source_path = Path::new(&file_path);
     let file_name = source_path.file_name().unwrap();
 
-    let mut path = PathBuf::from("_posts/");
+    let mut path = PathBuf::from("_site/");
     path.push(file_name);
     path.set_extension("html");
 
