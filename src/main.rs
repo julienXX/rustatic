@@ -18,13 +18,18 @@ use rustc_serialize::json::{Json, ToJson};
 
 use handlebars::Handlebars;
 
+mod server;
+
 fn main() {
     match env::args().nth(1) {
         Some(file) => {
             setup();
+
             let html = convert(&file);
             let content = render_layout(html);
-            write_file(file, content);
+            let html_file_path = write_file(file, content);
+
+            server::run(html_file_path);
         }
         None => {
             println!("Usage: rustatic <path/to/file>");
@@ -62,7 +67,7 @@ fn convert(file: &String) -> String {
     return result.to_str().unwrap().to_owned();
 }
 
-fn write_file(file_path: String, html: String) {
+fn write_file(file_path: String, html: String) -> String {
     let source_path = Path::new(&file_path);
     let file_name = source_path.file_name().unwrap();
 
@@ -82,6 +87,7 @@ fn write_file(file_path: String, html: String) {
 
     let mut writer = BufWriter::new(&file);
     writer.write_all(&html.into_bytes());
+    path.to_str().unwrap().to_string()
 }
 
 #[derive(Debug)]
@@ -91,12 +97,12 @@ struct Content {
 }
 
 impl ToJson for Content {
-  fn to_json(&self) -> Json {
-    let mut m: BTreeMap<String, Json> = BTreeMap::new();
-    m.insert("title".to_string(), self.title.to_json());
-    m.insert("body".to_string(), self.body.to_json());
-    m.to_json()
-  }
+    fn to_json(&self) -> Json {
+        let mut m: BTreeMap<String, Json> = BTreeMap::new();
+        m.insert("title".to_string(), self.title.to_json());
+        m.insert("body".to_string(), self.body.to_json());
+        m.to_json()
+    }
 }
 
 fn render_layout(content: String) -> String {
