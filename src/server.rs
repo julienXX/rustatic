@@ -17,7 +17,7 @@ pub fn run(html_file_path: String) {
     };
 
     let mut html = String::new();
-    file.read_to_string(&mut html);
+    file.read_to_string(&mut html).ok();
 
     for stream in listener.incoming() {
         match stream {

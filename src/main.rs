@@ -23,7 +23,7 @@ mod server;
 fn main() {
     match env::args().nth(1) {
         Some(file) => {
-            setup();
+            setup().ok();
 
             let html = convert(&file);
             let content = render_layout(html);
@@ -57,7 +57,7 @@ fn convert(file: &String) -> String {
     };
 
     let mut s = String::new();
-    file.read_to_string(&mut s);
+    file.read_to_string(&mut s).ok();
 
     let input = Markdown::new(&s);
     let mut html = Html::new(Flags::empty(), 0);
@@ -86,7 +86,7 @@ fn write_file(file_path: String, html: String) -> String {
     };
 
     let mut writer = BufWriter::new(&file);
-    writer.write_all(&html.into_bytes());
+    writer.write_all(&html.into_bytes()).ok();
     path.to_str().unwrap().to_string()
 }
 
@@ -115,7 +115,7 @@ fn render_layout(content: String) -> String {
     };
 
     let mut source = String::new();
-    file.read_to_string(&mut source);
+    file.read_to_string(&mut source).ok();
 
     handlebars.register_template_string("default", source.to_string())
         .ok().unwrap();
