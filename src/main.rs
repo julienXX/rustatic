@@ -78,7 +78,8 @@ fn write_file(file_path: String, html: String) -> String {
     let mut options = OpenOptions::new();
     options.read(true)
         .write(true)
-        .create(true);
+        .create(true)
+        .append(false);
 
     let file = match options.open(&path) {
         Ok(file) => file,
