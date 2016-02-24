@@ -7,3 +7,4 @@ authors = ["Julien Blanchard <julien@sideburns.eu>"]
 hoedown = "*"
 handlebars = "*"
 rustc-serialize = "*"
+yaml-rust = "*"

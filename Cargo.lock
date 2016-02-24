@@ -5,6 +5,7 @@ dependencies = [
  "handlebars 0.12.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "hoedown 3.0.3 (registry+https://github.com/rust-lang/crates.io-index)",
  "rustc-serialize 0.3.16 (registry+https://github.com/rust-lang/crates.io-index)",
+ "yaml-rust 0.3.0 (registry+https://github.com/rust-lang/crates.io-index)",
 ]
 
 [[package]]
@@ -139,5 +140,10 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 [[package]]
 name = "winapi-build"
 version = "0.1.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+
+[[package]]
+name = "yaml-rust"
+version = "0.3.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 
