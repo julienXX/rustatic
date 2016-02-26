@@ -28,7 +28,8 @@ struct Document {
     tldr: String,
     date: String,
     body: String,
-    path: String
+    path: String,
+    file_name: String,
 }
 
 impl ToJson for Document {
@@ -38,6 +39,8 @@ impl ToJson for Document {
         m.insert("tldr".to_string(), self.tldr.to_json());
         m.insert("date".to_string(), self.date.to_json());
         m.insert("body".to_string(), self.body.to_json());
+        m.insert("path".to_string(), self.path.to_json());
+        m.insert("file_name".to_string(), self.file_name.to_json());
         m.to_json()
     }
 }
@@ -45,13 +48,22 @@ impl ToJson for Document {
 fn main() {
     let files = fs::read_dir("./_source").unwrap();
 
+    let mut documents = Vec::new();
+
     for file in files {
         let path = file.unwrap().path().display().to_string();
         let document = parse_file(&path);
-        let content = render_layout(&document);
+
+        let layout_path = Path::new("_layouts/default.hbs");
+        let content = render_layout(&document, layout_path);
+
         let html_file_path = write_file(path, content);
-        // add_to_index();
+        documents.push(document);
         // server::run(html_file_path);
+    }
+
+    if documents.len() >= 1 {
+        add_to_index(documents);
     }
 }
 
@@ -84,7 +96,12 @@ fn parse_file(file: &String) -> Document {
         date: date,
         body: markdown_to_html(content),
         path: path.display().to_string(),
+        file_name: generate_link(path)
     }
+}
+
+fn generate_link(path: &Path) -> String {
+    path.file_stem().unwrap().to_str().unwrap().to_owned()
 }
 
 fn markdown_to_html(content: String) -> String {
@@ -95,11 +112,10 @@ fn markdown_to_html(content: String) -> String {
     return result.to_str().unwrap().to_owned();
 }
 
-fn render_layout(document: &Document) -> String {
+fn render_layout(document: &Document, layout: &Path) -> String {
     let mut handlebars = Handlebars::new();
-    let path = Path::new("_layouts/default.hbs");
 
-    let mut file = match File::open(path) {
+    let mut file = match File::open(layout) {
         Ok(file) => file,
         Err(..)  => panic!("Can't find layout."),
     };
@@ -107,12 +123,32 @@ fn render_layout(document: &Document) -> String {
     let mut source = String::new();
     file.read_to_string(&mut source).ok();
 
-    handlebars.register_template_string("default", source.to_string())
+    handlebars.register_template_string("template", source.to_string())
         .ok().unwrap();
 
     println!("Rendering {:?}", document.path);
 
-    handlebars.render("default", document).unwrap()
+    handlebars.render("template", document).unwrap()
+}
+
+fn render_index(documents: &BTreeMap<String, Json>) -> String {
+    let mut handlebars = Handlebars::new();
+    let layout = Path::new("_layouts/index.hbs");
+
+    let mut file = match File::open(layout) {
+        Ok(file) => file,
+        Err(..)  => panic!("Can't find layout."),
+    };
+
+    let mut source = String::new();
+    file.read_to_string(&mut source).ok();
+
+    handlebars.register_template_string("template", source.to_string())
+        .ok().unwrap();
+
+    println!("Rendering Index");
+
+    handlebars.render("template", documents).unwrap()
 }
 
 fn write_file(file_path: String, html: String) -> String {
@@ -137,4 +173,28 @@ fn write_file(file_path: String, html: String) -> String {
     let mut writer = BufWriter::new(&file);
     writer.write_all(&html.into_bytes()).ok();
     path.to_str().unwrap().to_string()
+}
+
+fn add_to_index(documents: Vec<Document>) {
+    let mut path = PathBuf::from("_site/");
+    path.push("index");
+    path.set_extension("html");
+
+    let mut options = OpenOptions::new();
+    options.read(true)
+        .write(true)
+        .create(true)
+        .append(false);
+
+    let file = match options.open(&path) {
+        Ok(file) => file,
+        Err(..) => panic!("at the Disco"),
+    };
+
+    let mut data = BTreeMap::new();
+    data.insert("documents".to_string(), documents.to_json());
+
+    let html = render_index(&data);
+    let mut writer = BufWriter::new(&file);
+    writer.write_all(&html.into_bytes()).ok();
 }
