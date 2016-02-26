@@ -25,6 +25,7 @@ mod server;
 #[derive(Debug)]
 struct Document {
     title: String,
+    tldr: String,
     date: String,
     body: String,
     path: String
@@ -34,6 +35,7 @@ impl ToJson for Document {
     fn to_json(&self) -> Json {
         let mut m: BTreeMap<String, Json> = BTreeMap::new();
         m.insert("title".to_string(), self.title.to_json());
+        m.insert("tldr".to_string(), self.tldr.to_json());
         m.insert("date".to_string(), self.date.to_json());
         m.insert("body".to_string(), self.body.to_json());
         m.to_json()
@@ -64,31 +66,24 @@ fn parse_file(file: &String) -> Document {
     let mut content = String::new();
     file.read_to_string(&mut content).ok();
 
-    if content.contains("---") {
-        let content2 = content.clone();
-        let split = content2.split("---");
-        let vec: Vec<&str> = split.collect();
-        let header = vec.first().unwrap();
-        let content = vec.last().unwrap();
+    let content_clone = content.clone();
+    let split = content_clone.split("---");
+    let vec: Vec<&str> = split.collect();
+    let header = vec.first().unwrap();
+    content = vec.last().unwrap().to_string();
 
-        let yaml_result = YamlLoader::load_from_str(header).unwrap();
+    let yaml_result = YamlLoader::load_from_str(header).unwrap();
 
-        let title = yaml_result[0]["title"].as_str().unwrap().to_owned();
-        let date = yaml_result[0]["date"].as_str().unwrap().to_owned();
+    let title = yaml_result[0]["title"].as_str().unwrap_or("").to_owned();
+    let tldr = yaml_result[0]["tldr"].as_str().unwrap_or("").to_owned();
+    let date = yaml_result[0]["date"].as_str().unwrap_or("").to_owned();
 
-        Document {
-            title: title,
-            date: date,
-            body: markdown_to_html(content.to_string()),
-            path: path.display().to_string(),
-        }
-    } else {
-        Document {
-            title: "".to_owned(),
-            date: "".to_owned(),
-            body: markdown_to_html(content),
-            path: path.display().to_string(),
-        }
+    Document {
+        title: title,
+        tldr: tldr,
+        date: date,
+        body: markdown_to_html(content),
+        path: path.display().to_string(),
     }
 }
 
