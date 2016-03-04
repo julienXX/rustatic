@@ -1,1 +1,1 @@
-# rustatic: a static site builder
+# toucan: a static site builder
