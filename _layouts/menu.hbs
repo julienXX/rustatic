@@ -6,9 +6,9 @@
     <meta name="viewport" content="width=device-width, initial-scale=1">
 
     <title>Blog</title>
-    <link rel="shortcut icon" href="assets/images/favicon.ico">
-    <link rel="stylesheet" href="assets/css/highlight.css">
-    <link rel="stylesheet" href="assets/css/style.css">
+    {{! <link rel="shortcut icon" href="assets/images/favicon.ico"> }}
+    {{! <link rel="stylesheet" href="assets/css/highlight.css"> }}
+    {{! <link rel="stylesheet" href="assets/css/style.css"> }}
     <style>
       ul {
       list-style-type: none;
@@ -36,11 +36,10 @@
     </style>
   </head>
   <body>
-    {{> menu }}
-
+    <ul>
     {{#each documents}}
-      <a href="{{ file_name }}.html"><h2>{{ date }} - {{ title }}</h2></a>
-      <p>{{ tldr }}</p>
+      <li><a href="{{ file_name }}.html"><h2>{{ title }}</h2></a></li>
     {{/each}}
+    </ul>
   </body>
 </html>

@@ -3,11 +3,12 @@ extern crate rustc_serialize;
 extern crate handlebars;
 extern crate yaml_rust;
 
+use std::io;
 use std::io::prelude::*;
 use std::fs;
-use std::fs::{File,OpenOptions};
+use std::fs::{File, OpenOptions};
 use std::io::BufWriter;
-use std::path::{Path,PathBuf};
+use std::path::{Path, PathBuf};
 
 use hoedown::Markdown;
 use hoedown::renderer::Render;
@@ -46,12 +47,17 @@ impl ToJson for Document {
 }
 
 fn main() {
-    let files = fs::read_dir("./_source").unwrap();
+    create_output_dir();
+    generate_posts();
+    generate_pages();
+}
 
+fn generate_posts() {
+    let posts = fs::read_dir("./_posts").unwrap();
     let mut documents = Vec::new();
 
-    for file in files {
-        let path = file.unwrap().path().display().to_string();
+    for post in posts {
+        let path = post.unwrap().path().display().to_string();
         let document = parse_file(&path);
 
         let layout_path = Path::new("_layouts/default.hbs");
@@ -67,12 +73,33 @@ fn main() {
     }
 }
 
+fn generate_pages() {
+    let pages = fs::read_dir("./_pages").unwrap();
+    let mut documents = Vec::new();
+
+    for page in pages {
+        let path = page.unwrap().path().display().to_string();
+        let document = parse_file(&path);
+
+        let layout_path = Path::new("_layouts/default.hbs");
+        let content = render_layout(&document, layout_path);
+
+        let html_file_path = write_file(path, content);
+        documents.push(document);
+        // server::run(html_file_path);
+    }
+
+    if documents.len() >= 1 {
+        add_to_menu(documents);
+    }
+}
+
 fn parse_file(file: &String) -> Document {
     let path = Path::new(&file);
 
     let mut file = match File::open(path) {
         Ok(file) => file,
-        Err(..)  => panic!("Can't find file."),
+        Err(..) => panic!("Can't find file."),
     };
 
     let mut content = String::new();
@@ -96,7 +123,7 @@ fn parse_file(file: &String) -> Document {
         date: date,
         body: markdown_to_html(content),
         path: path.display().to_string(),
-        file_name: generate_link(path)
+        file_name: generate_link(path),
     }
 }
 
@@ -117,14 +144,15 @@ fn render_layout(document: &Document, layout: &Path) -> String {
 
     let mut file = match File::open(layout) {
         Ok(file) => file,
-        Err(..)  => panic!("Can't find layout."),
+        Err(..) => panic!("Can't find layout."),
     };
 
     let mut source = String::new();
     file.read_to_string(&mut source).ok();
 
     handlebars.register_template_string("template", source.to_string())
-        .ok().unwrap();
+        .ok()
+        .unwrap();
 
     println!("Rendering {:?}", document.path);
 
@@ -137,18 +165,24 @@ fn render_index(documents: &BTreeMap<String, Json>) -> String {
 
     let mut file = match File::open(layout) {
         Ok(file) => file,
-        Err(..)  => panic!("Can't find layout."),
+        Err(..) => panic!("Can't find layout."),
     };
 
     let mut source = String::new();
     file.read_to_string(&mut source).ok();
 
     handlebars.register_template_string("template", source.to_string())
-        .ok().unwrap();
+        .ok()
+        .unwrap();
 
     println!("Rendering Index");
 
     handlebars.render("template", documents).unwrap()
+}
+
+fn create_output_dir() -> Result<(), io::Error> {
+    try!(fs::create_dir("_site"));
+    Ok(())
 }
 
 fn write_file(file_path: String, html: String) -> String {
@@ -197,4 +231,49 @@ fn add_to_index(documents: Vec<Document>) {
     let html = render_index(&data);
     let mut writer = BufWriter::new(&file);
     writer.write_all(&html.into_bytes()).ok();
+}
+
+fn add_to_menu(documents: Vec<Document>) {
+    let mut path = PathBuf::from("_site/");
+    path.push("_menu");
+    path.set_extension("html");
+
+    let mut options = OpenOptions::new();
+    options.read(true)
+        .write(true)
+        .create(true)
+        .append(false);
+
+    let file = match options.open(&path) {
+        Ok(file) => file,
+        Err(..) => panic!("at the Disco"),
+    };
+
+    let mut data = BTreeMap::new();
+    data.insert("documents".to_string(), documents.to_json());
+
+    let html = render_menu(&data);
+    let mut writer = BufWriter::new(&file);
+    writer.write_all(&html.into_bytes()).ok();
+}
+
+fn render_menu(documents: &BTreeMap<String, Json>) -> String {
+    let mut handlebars = Handlebars::new();
+    let layout = Path::new("_layouts/menu.hbs");
+
+    let mut file = match File::open(layout) {
+        Ok(file) => file,
+        Err(..) => panic!("Can't find layout."),
+    };
+
+    let mut source = String::new();
+    file.read_to_string(&mut source).ok();
+
+    handlebars.register_template_string("template", source.to_string())
+        .ok()
+        .unwrap();
+
+    println!("Rendering Menu");
+
+    handlebars.render("template", documents).unwrap()
 }

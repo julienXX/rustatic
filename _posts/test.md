@@ -1,4 +1,5 @@
 title: super
+tldr: Let's start the process of refactoring the file_double function. To make this function composable with other components of the program, it should not panic if any of the above error conditions are met.
 date: 2016-01-03
 ---
 
